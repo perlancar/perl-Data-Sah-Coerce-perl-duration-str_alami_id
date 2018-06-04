@@ -9,9 +9,9 @@ use warnings;
 
 sub meta {
     +{
-        v => 2,
+        v => 3,
         enable_by_default => 0,
-        might_die => 1,
+        might_fail => 1,
         prio => 60, # a bit lower than normal
         precludes => [qr/\Astr_alami(_.+)?\z/, 'str_human'],
     };
@@ -29,11 +29,11 @@ sub coerce {
     $res->{modules}{"DateTime::Format::Alami::ID"} //= 0;
     $res->{expr_coerce} = join(
         "",
-        "do { my \$res = DateTime::Format::Alami::ID->new->parse_datetime_duration($dt, {format=>'combined'}) or die \"Can't coerce string '\".$dt.\"' to duration\"; ",
-        ($coerce_to eq 'float(secs)' ? "\$res = \$res->{seconds}; " :
-             $coerce_to eq 'DateTime::Duration' ? "\$res = \$res->{Duration}; " :
+        "do { my \$res; eval { \$res = DateTime::Format::Alami::ID->new->parse_datetime_duration($dt, {format=>'combined'}) }; ",
+        ($coerce_to eq 'float(secs)' ? "if (\$@) { ['Invalid duration syntax'] } else { [undef, \$res->{seconds}] } " :
+             $coerce_to eq 'DateTime::Duration' ? "if (\$@) { ['Invalid duration syntax'] } else { [undef, \$res->{Duration}] } " :
              (die "BUG: Unknown coerce_to '$coerce_to'")),
-        "\$res }",
+        "}",
     );
     $res;
 }
